@@ -659,6 +659,11 @@ function buildBuzzButton(disabled = false) {
       .setCustomId('buzz')
       .setLabel('⚡  BUZZ IN')
       .setStyle(ButtonStyle.Danger)
+      .setDisabled(disabled),
+    new ButtonBuilder()
+      .setCustomId('skip')
+      .setLabel('⏭️  Skip Question')
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(disabled)
   )];
 }
@@ -861,6 +866,24 @@ client.on('interactionCreate', async (interaction) => {
 
     // 15s answer timeout
     state.timeout = setTimeout(() => handleAnswerTimeout(interaction, state), 15000);
+    return;
+  }
+
+  // SKIP QUESTION
+  if (interaction.customId === 'skip') {
+    if (state.phase === 'answer')
+      return interaction.reply({ content: 'Cannot skip while someone is answering!', ephemeral: true });
+
+    clearTimeout(state.timeout);
+    await state.buzzMessage?.edit({ components: buildBuzzButton(true) }).catch(() => {});
+
+    await interaction.reply({ embeds: [new EmbedBuilder()
+      .setTitle(`⏭️ Question Skipped by ${interaction.user.username}`)
+      .setDescription(`The answer was **${['A','B','C','D'][state.q.answer]}. ${state.q.choices[state.q.answer]}**\n\n💡 ${state.q.explanation}`)
+      .setColor(0x808080)
+    ]});
+
+    await advanceRound(interaction.channel, state, interaction.channelId);
     return;
   }
 
